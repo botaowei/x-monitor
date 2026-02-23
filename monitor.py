@@ -10,7 +10,13 @@ DATA_FILE = "data.json"
 
 def get_retweet_count():
     # 尝试多个镜像，防止单个失效
-    mirrors = ["https://nitter.net", "https://nitter.cz", "https://nitter.privacydev.net"]
+   mirrors = [
+    "https://nitter.net", 
+    "https://nitter.cz", 
+    "https://nitter.privacydev.net", 
+    "https://nitter.no-logs.com",
+    "https://nitter.projectsegfau.lt"
+]
     for mirror in mirrors:
         try:
             url = TWEET_URL.replace("https://nitter.net", mirror)
