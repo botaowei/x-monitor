@@ -22,7 +22,8 @@
 
     <script>
         async function updateDisplay() {
-            const res = await fetch('data.json');
+            // 加上时间戳防止浏览器缓存
+            const res = await fetch('data.json?t=' + new Date().getTime());
             const data = await res.json();
             
             const lastChange = data.lastChangeTimestamp * 1000;
