@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>X 转发监控倒计时</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #15202b; color: white; }
+        .container { text-align: center; border: 1px solid #38444d; padding: 40px; border-radius: 20px; }
+        #countdown { font-size: 48px; font-weight: bold; color: #1d9bf0; }
+        .info { margin-top: 20px; color: #8899a6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>24小时转发无变动倒计时</h2>
+        <div id="countdown">加载中...</div>
+        <div class="info">
+            当前转发数: <span id="count">-</span><br>
+            上次更新时间: <span id="update">-</span>
+        </div>
+    </div>
+
+    <script>
+        async function updateDisplay() {
+            const res = await fetch('data.json');
+            const data = await res.json();
+            
+            const lastChange = data.lastChangeTimestamp * 1000;
+            const target = lastChange + (24 * 60 * 60 * 1000);
+            
+            document.getElementById('count').innerText = data.currentCount;
+            document.getElementById('update').innerText = new Date(data.lastUpdate * 1000).toLocaleString();
+
+            const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const diff = target - now;
+                
+                if (diff <= 0) {
+                    document.getElementById('countdown').innerText = "00:00:00 (等待重置)";
+                    clearInterval(timer);
+                } else {
+                    const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                    document.getElementById('countdown').innerText = `${h}:${m}:${s}`;
+                }
+            }, 1000);
+        }
+        updateDisplay();
+    </script>
+</body>
+</html>
