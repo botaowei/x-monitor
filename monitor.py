@@ -9,34 +9,36 @@ TWEET_URL = "https://nitter.net/Pxstar_/status/2014525129548825049"
 DATA_FILE = "data.json"
 
 def get_retweet_count():
-    # 备用镜像列表
+    # 扩大镜像列表，增加成功率
     mirrors = [
-        "https://nitter.net", 
-        "https://nitter.cz", 
         "https://nitter.privacydev.net",
-        "https://nitter.no-logs.com"
+        "https://nitter.cz",
+        "https://nitter.perennialte.ch",
+        "https://nitter.no-logs.com",
+        "https://nitter.net"
     ]
     for mirror in mirrors:
         try:
             url = TWEET_URL.replace("https://nitter.net", mirror)
+            print(f"正在尝试镜像: {mirror}")
             res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
-            # 匹配转发数
-            match = re.search(r'icon-retweet"></span>\s*([\d,]+)', res.text)
+            # 兼容不同镜像可能的 HTML 结构
+            match = re.search(r'icon-retweet"></span>\s*([\d,.]+)', res.text)
             if match:
-                count_str = match.group(1).replace(',', '')
+                count_str = match.group(1).replace(',', '').replace('.', '')
                 return int(count_str)
         except Exception as e:
-            print(f"镜像 {mirror} 尝试失败: {e}")
+            print(f"镜像 {mirror} 失败")
             continue
     return None
 
-# 1. 读取或初始化数据
+# 1. 始终先读取或初始化 data 结构
 if os.path.exists(DATA_FILE):
-    try:
-        with open(DATA_FILE, 'r') as f:
+    with open(DATA_FILE, 'r') as f:
+        try:
             data = json.load(f)
-    except:
-        data = {"lastCount": 0, "lastChangeTimestamp": int(time.time()), "currentCount": 0}
+        except:
+            data = {"lastCount": 0, "lastChangeTimestamp": int(time.time()), "currentCount": 0}
 else:
     data = {"lastCount": 0, "lastChangeTimestamp": int(time.time()), "currentCount": 0}
 
@@ -44,27 +46,26 @@ else:
 current_count = get_retweet_count()
 now = int(time.time())
 
-# 3. 逻辑判断
+# 3. 只有抓取成功才更新逻辑
 if current_count is not None:
-    # 如果转发数和上次记录的不一样（增减都算）
     if current_count != data.get("lastCount", 0):
-        print(f"检测到变化: {data.get('lastCount')} -> {current_count}，重置计时器")
+        print(f"数据变化: {data.get('lastCount')} -> {current_count}")
         data["lastChangeTimestamp"] = now
         data["lastCount"] = current_count
     else:
-        # 如果转发数没变，检查是否已经过了 24 小时
         elapsed = now - data.get("lastChangeTimestamp", now)
         if elapsed >= 24 * 3600:
-            print("24小时无变化，计时归零，重新开始计时")
+            print("24小时无变化，归零重置计时")
             data["lastChangeTimestamp"] = now
-            # 这里保持 lastCount 不变，只重置时间起点
     
     data["currentCount"] = current_count
     data["lastUpdate"] = now
-
-    # 4. 保存数据
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
-    print("数据更新成功")
+    print("抓取成功，准备写入文件")
 else:
-    print("未能获取到数据，跳过本次更新")
+    # 如果抓取失败，我们也更新一下最后检查时间，确保 data.json 始终被“触碰”过
+    data["lastUpdate"] = now
+    print("所有镜像抓取失败，保持原有数据")
+
+# 4. 无论成功失败，都写入文件（确保 Git add 能找到文件）
+with open(DATA_FILE, 'w') as f:
+    json.dump(data, f, indent=4)
